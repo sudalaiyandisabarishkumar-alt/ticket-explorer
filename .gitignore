@@ -1,0 +1,15 @@
+# secrets -- never commit these
+.env
+*.env
+
+# virtualenv
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# generated PDF reports (transient output, not source)
+*.pdf
+
+# OS/editor cruft
+.DS_Store

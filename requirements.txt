@@ -1,0 +1,6 @@
+# ado_ticket_explorer.py
+requests>=2.31
+reportlab>=4.0
+
+# slack_status_report_webhook.py
+flask>=3.0

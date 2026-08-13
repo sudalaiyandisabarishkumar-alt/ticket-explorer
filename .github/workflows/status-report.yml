@@ -1,0 +1,58 @@
+name: Status report (manual/cron)
+
+# NOTE: the live Slack picker flow (org -> project -> user -> dates) runs
+# entirely inside slack_status_report_webhook.py, because each dropdown
+# click needs a Slack response within 3 seconds -- that round-trip can't go
+# through a CI job. This workflow is a separate, optional path for running
+# a report without Slack at all (manual button-press, or on a schedule),
+# with org/project passed as explicit inputs rather than baked-in secrets.
+
+on:
+  workflow_dispatch:
+    inputs:
+      org:
+        description: "Azure DevOps organization"
+        required: true
+      project:
+        description: "Azure DevOps project"
+        required: true
+      user:
+        description: "Person to report on (display name or email, substring OK)"
+        required: true
+      date_range:
+        description: "'today' | 'yesterday' | 'this-week' | 'last-week' | 'YYYY-MM-DD' | 'YYYY-MM-DD YYYY-MM-DD'"
+        required: false
+        default: "today"
+
+jobs:
+  generate-report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install requests reportlab
+
+      - name: Run report (--quiet)
+        env:
+          ADO_PAT: ${{ secrets.ADO_PAT }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          python ado_ticket_explorer.py --quiet \
+            --org "${{ github.event.inputs.org }}" \
+            --project "${{ github.event.inputs.project }}" \
+            "${{ github.event.inputs.user }}" \
+            ${{ github.event.inputs.date_range }} \
+            > result.json
+          cat result.json
+
+      - name: Upload PDF as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ticket-report
+          path: ticket_report_*.pdf
+          if-no-files-found: warn
